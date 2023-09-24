@@ -1,8 +1,5 @@
 import jmcomic, os, time, yaml
 from PIL import Image
-from pathlib import Path
-from pyinstrument import Profiler
-
 
 def all2PDF(input_folder, pdfpath, pdfname):
     start_time = time.time()
@@ -50,11 +47,10 @@ if __name__ == "__main__":
     # 自定义设置：
     config = "D:/18comic_down/code/config.yml"
     loadConfig = jmcomic.JmOption.from_file(config)
+    #如果需要下载，则取消以下注释
     # manhua = ['146417']
     # for id in manhua:
     #     jmcomic.download_album(id,loadConfig)
-    profiler = Profiler()
-    profiler.start()
 
     with open(config, "r", encoding="utf8") as f:
         data = yaml.load(f, Loader=yaml.FullLoader)
@@ -69,4 +65,3 @@ if __name__ == "__main__":
                 else:
                     print("开始转换：%s " % entry.name)
                     all2PDF(path + "/" + entry.name, path, entry.name)
-    profiler.stop()
