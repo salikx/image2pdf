@@ -9,7 +9,7 @@
 ```shell
 manhua = ['146417']  
 for id in manhua:
-jmcomic.download_album(id,loadConfig)
+  jmcomic.download_album(id,loadConfig)
 ```
 可取消上述代码注释，manhua = ['146417']  中可填写多个需要下载的本子，格式:['12314545','2321415']以此类推；
 
