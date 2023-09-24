@@ -3,15 +3,14 @@
 ## 功能说明
 将下载好的图片（本子）转换为PDF
 ## 使用说明
-1. 先安装JMComic-Crawler
-2. 需要安装第三方库：
+1. 安装第三方库：
   ```shell
   pip install jmcomic -i https://pypi.org/project --upgrade
   pip install pillow
   pip install pyyaml 
   ```
-3. 下载好本子之后，可直接使用main.py进行下载和转换：
-4. 预先配置好config路径,
+2. 可直接使用main.py进行下载和转换：
+3. 也可直接运行main.py进行下载和转换，但需要预先配置config路径,
 ```shell
 manhua = ['146417']  
 for id in manhua:
