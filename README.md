@@ -7,7 +7,7 @@
 2. 下载好本子之后，可直接使用main.py进行下载和转换：
 3. 预先配置好config路径,
 4.
-    '''
+    '''python
         manhua = ['146417']  
         for id in manhua:
         jmcomic.download_album(id,loadConfig)
