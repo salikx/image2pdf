@@ -6,12 +6,11 @@
 1. 先安装JMComic-Crawler
 2. 下载好本子之后，可直接使用main.py进行下载和转换：
 3. 预先配置好config路径,
-4.
-    '''python
-        manhua = ['146417']  
-        for id in manhua:
-        jmcomic.download_album(id,loadConfig)
-    '''
+```shell
+manhua = ['146417']  
+for id in manhua:
+jmcomic.download_album(id,loadConfig)
+```
 可取消上述代码注释，manhua = ['146417']  中可填写多个需要下载的本子，格式:['12314545','2321415']以此类推；
 
 ##注意
