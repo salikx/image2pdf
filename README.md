@@ -9,8 +9,7 @@
   pip install pillow
   pip install pyyaml 
   ```
-2. 可直接使用main.py进行下载和转换：
-3. 也可直接运行main.py进行下载和转换，但需要预先配置config路径,
+2. 可直接运行main.py进行下载和转换，但需要预先配置config路径,
 ```shell
 manhua = ['146417']  
 for id in manhua:
