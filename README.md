@@ -6,7 +6,7 @@ JMComic-qt](https://github.com/hect0x7/JMComic-Crawler-Python)https://github.com
 ## 使用方法
 
 1. 确保已安装所有依赖
-    ```bash
+  ```bash
   pip install -r requirements.txt
   ```
 2. 配置`config.yml`文件（可选）
