@@ -1,0 +1,4 @@
+jmcomic>=1.0.0
+Pillow>=10.0.0
+PyYAML>=6.0.0
+PyPDF2>=3.0.0 
