@@ -1,23 +1,48 @@
-# Github Actions 下载脚本配置
-version: '2.0'
+# 是否开启jmcomic的日志输出
+log: false
 
-dir_rule:
-  base_dir: D:/18comic_down/books
-  rule: Bd_Atitle_Pindex
-
+# 配置客户端相关
 client:
+  # 使用网页端，效率更高
+  impl: html
+  # 配置多个域名，按顺序尝试
   domain:
     - 18comic.vip
     - 18comic.org
+    - jm-comic.org
+    - jm-comic2.cc
+  # 请求失败重试次数
+  retry_times: 5
+  # 请求配置
+  postman:
+    meta_data:
+      # 使用系统代理，默认clash端口
+      proxies: 
+        http: http://127.0.0.1:7890
+        https: http://127.0.0.1:7890
+      # 如果需要登录，在这里配置cookies
+      cookies: null
 
+# 下载配置
 download:
-  cache: true # 如果要下载的文件在磁盘上已存在，不用再下一遍了吧？
+  # 启用缓存，避免重复下载
+  cache: true
+  # 图片配置
   image:
-    decode: true # JM的原图是混淆过的，要不要还原？
-    suffix: .jpg # 把图片都转为.jpg格式
+    # 还原混淆的图片
+    decode: true
+    # 统一转换为jpg格式
+    suffix: .jpg
+  # 并发配置
   threading:
-    # batch_count: 章节的批量下载图片线程数
-    # 数值大，下得快，配置要求高，对禁漫压力大
-    # 数值小，下得慢，配置要求低，对禁漫压力小
-    # PS: 禁漫网页一般是一次请求50张图
-    batch_count: 45
+    # 同时下载30张图片
+    image: 30
+    # 同时下载的章节数，默认使用CPU线程数
+    photo: 16
+
+# 文件夹规则配置
+dir_rule:
+  # 下载根目录，使用相对路径
+  base_dir: "./downloads"
+  # 使用默认规则：根目录/章节标题/图片文件
+  rule: Bd_Ptitle
