@@ -2,22 +2,17 @@
 version: '2.0'
 
 dir_rule:
-  base_dir: D:/18comic_down/books
-  rule: Bd_Atitle_Pindex
-
-client:
-  domain:
-    - 18comic.vip
-    - 18comic.org
+  base_dir: output
+  rule: Bd_Aid_Pindex
 
 download:
-  cache: true # 如果要下载的文件在磁盘上已存在，不用再下一遍了吧？
+  cache: true # 如果要下载的文件在磁盘上已存在，不用再下一遍了吧？默认为true
   image:
-    decode: true # JM的原图是混淆过的，要不要还原？
-    suffix: .jpg # 把图片都转为.jpg格式
+    decode: true # JM的原图是混淆过的，要不要还原？默认为true
+    suffix: .jpg # 把图片都转为.jpg格式，默认为null，表示不转换。
   threading:
-    # batch_count: 章节的批量下载图片线程数
+    # image: 同时下载的图片数，默认是30张图
     # 数值大，下得快，配置要求高，对禁漫压力大
     # 数值小，下得慢，配置要求低，对禁漫压力小
-    # PS: 禁漫网页一般是一次请求50张图
-    batch_count: 45
+    # PS: 禁漫网页一次最多请求50张图
+    image: 30
