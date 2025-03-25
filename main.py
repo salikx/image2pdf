@@ -1,67 +1,75 @@
-import jmcomic, os, time, yaml
+import os
+import argparse
+import yaml
+import jmcomic
+import jmcomic.jm_exception
 from PIL import Image
-
-def all2PDF(input_folder, pdfpath, pdfname):
-    start_time = time.time()
-    paht = input_folder
-    zimulu = []  # 子目录（里面为image）
-    image = []  # 子目录图集
-    sources = []  # pdf格式的图
-
-    with os.scandir(paht) as entries:
-        for entry in entries:
-            if entry.is_dir():
-                zimulu.append(int(entry.name))
-    # 对数字进行排序
-    zimulu.sort()
-
-    for i in zimulu:
-        with os.scandir(paht + "/" + str(i)) as entries:
-            for entry in entries:
-                if entry.is_dir():
-                    print("这一级不应该有自录")
-                if entry.is_file():
-                    image.append(paht + "/" + str(i) + "/" + entry.name)
-
-    if "jpg" in image[0]:
-        output = Image.open(image[0])
-        image.pop(0)
-
-    for file in image:
-        if "jpg" in file:
-            img_file = Image.open(file)
-            if img_file.mode == "RGB":
-                img_file = img_file.convert("RGB")
-            sources.append(img_file)
-
-    pdf_file_path = pdfpath + "/" + pdfname
-    if pdf_file_path.endswith(".pdf") == False:
-        pdf_file_path = pdf_file_path + ".pdf"
-    output.save(pdf_file_path, "pdf", save_all=True, append_images=sources)
-    end_time = time.time()
-    run_time = end_time - start_time
-    print("运行时间：%3.2f 秒" % run_time)
+from reportlab.pdfgen import canvas
 
 
-if __name__ == "__main__":
+def main():
     # 自定义设置：
-    config = "D:/18comic_down/code/config.yml"
-    loadConfig = jmcomic.JmOption.from_file(config)
-    #如果需要下载，则取消以下注释
-    # manhua = ['146417']
-    # for id in manhua:
-    #     jmcomic.download_album(id,loadConfig)
-
+    config = "config.yml"
+    option = jmcomic.create_option_by_file(config)
     with open(config, "r", encoding="utf8") as f:
-        data = yaml.load(f, Loader=yaml.FullLoader)
-        path = data["dir_rule"]["base_dir"]
+        path = yaml.load(f, Loader=yaml.FullLoader)["dir_rule"]["base_dir"]
+    
+    for ID in download_list:
+        album = [file for file in os.listdir(path) if file.endswith("(JM{}).pdf".format(ID))]
+        if album:
+            print("{} 已存在".format(album[0]))
+            continue
+        
+        file = os.path.join(path, ID)
+        if not os.path.exists(file):
+            print("准备下载 JM{}".format(ID))
+            try:
+                album = jmcomic.download_album(ID, option)[0]
+            except jmcomic.jm_exception.RequestRetryAllFailException:
+                # 目前存在缺陷, 只能捕获第一次网络异常
+                # 由于后续下载分在不同线程中, 因此这些异常不能被主线程捕获
+                # 我不想使用 sys.excepthook 全局捕获, 所以暂时没办法
+                print("下载 JM{} 失败, 可能是网络原因".format(ID))
+                continue
+        
+        with os.scandir(file):
+            episode = []  # 章节目录(标准名称为photo)
+            images = []  # 图片索引(仅含文件名)
+            
+            with os.scandir(file) as entries:
+                for entry in entries:
+                    if entry.is_dir():
+                        episode.append(int(entry.name))
+            # 对数字进行排序
+            episode.sort()
+            
+            for i in episode:
+                temp_images = []  # 临时列表，存储图片并排序
+                with os.scandir(os.path.join(file, str(i))) as entries:
+                    for entry in entries:
+                        temp_images.append(entry.name)
+                temp_images.sort()
+                images.append(temp_images)
+            
+            # 创建PDF流
+            print("正在将《{}》转换为PDF".format(album.name))
+            c = canvas.Canvas(os.path.join(path, album.name) + " (JM{}).pdf".format(ID))
+            for i in range(len(episode)):
+                print("第{}话 共{}页".format(episode[i], len(images[i])))
+                for image in images[i]:
+                    image = os.path.join(file, str(episode[i]), image)
+                    c.setPageSize(Image.open(image).size)
+                    c.drawImage(image, x=0, y=0)
+                    c.showPage()  # 结束当前页
+            c.save()
+            
+            print("《{}》转换完成".format(album.name))
 
-    with os.scandir(path) as entries:
-        for entry in entries:
-            if entry.is_dir():
-                if os.path.exists(os.path.join(path +'/' +entry.name + ".pdf")):
-                    print("文件：《%s》 已存在，跳过" % entry.name)
-                    continue
-                else:
-                    print("开始转换：%s " % entry.name)
-                    all2PDF(path + "/" + entry.name, path, entry.name)
+
+if __name__ == '__main__':
+    download_list: list[str] = []
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--add', nargs='+', default=[], help='输入JM编号')
+    download_list.extend(parser.parse_args().add)
+    main()
+
