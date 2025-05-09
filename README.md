@@ -1,6 +1,6 @@
-当然，这里是根据重构后的代码生成的 `README.md`，包含功能说明、使用方法以及必要的依赖安装步骤。
+## 感谢以下项目
+[![Readme Card](https://github-readme-stats.vercel.app/api/pin/?username=hect0x7&repo=JMComic-Crawler-Python)]([https://github.com/tonquer/JMComic-qt](https://github.com/hect0x7/JMComic-Crawler-Python)https://github.com/hect0x7/JMComic-Crawler-Python)
 
----
 
 # 📄 图片批量转换为 PDF 脚本
 
