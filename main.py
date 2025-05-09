@@ -4,100 +4,78 @@ import yaml
 from PIL import Image
 import jmcomic
 
-def convert_images_to_pdf(input_folder, output_path, pdf_name):
-    """
-    将指定文件夹内的所有图片按顺序合并为PDF文件
-    :param input_folder: 输入文件夹路径，包含按数字排序的子文件夹
-    :param output_path: PDF输出目录
-    :param pdf_name: 生成的PDF文件名（无需扩展名）
-    """
-    start_time = time.time()
-    image_paths = []
+def sorted_numeric_filenames(file_list):
+    """对文件名按数字部分排序"""
+    def extract_number(s):
+        name, _ = os.path.splitext(s)
+        return int(''.join(filter(str.isdigit, name)) or 0)
+    return sorted(file_list, key=extract_number)
 
-    # 收集所有子文件夹并按数字排序
-    subdirs = []
+def convert_images_to_pdf(input_folder, output_path, pdf_name):
+    start_time = time.time()
+    allowed_extensions = {'.jpg', '.jpeg', '.png', '.webp', '.bmp'}
+    output_path = os.path.normpath(output_path)
+    os.makedirs(output_path, exist_ok=True)
+    pdf_full_path = os.path.join(output_path, f"{os.path.splitext(pdf_name)[0]}.pdf")
+
+    image_iterator = []
+
+    # 获取子目录并排序
     try:
-        with os.scandir(input_folder) as entries:
-            for entry in entries:
-                if entry.is_dir():
-                    try:
-                        subdirs.append(int(entry.name))
-                    except ValueError:
-                        print(f"警告：跳过非数字目录 '{entry.name}'")
-    except FileNotFoundError:
-        print(f"错误：输入目录不存在 '{input_folder}'")
+        subdirs = sorted(
+            [d for d in os.listdir(input_folder) if os.path.isdir(os.path.join(input_folder, d))],
+            key=lambda x: int(x) if x.isdigit() else float('inf')
+        )
+    except Exception as e:
+        print(f"错误：无法读取目录 {input_folder}，原因：{e}")
         return
 
-    subdirs.sort()
-
-    # 收集所有图片路径
-    allowed_extensions = {'.jpg', '.jpeg', '.png', '.webp', '.bmp'}
     for subdir in subdirs:
-        subdir_path = os.path.join(input_folder, str(subdir))
+        subdir_path = os.path.join(input_folder, subdir)
         try:
-            with os.scandir(subdir_path) as entries:
-                files = []
-                for entry in entries:
-                    if entry.is_file():
-                        ext = os.path.splitext(entry.name)[1].lower()
-                        if ext in allowed_extensions:
-                            files.append(entry.name)
-                # 按文件名排序（简单数字排序）
-                files.sort(key=lambda x: os.path.splitext(x)[0])
-                for filename in files:
-                    image_paths.append(os.path.join(subdir_path, filename))
-        except FileNotFoundError:
-            print(f"警告：子目录不存在 '{subdir_path}'，已跳过")
-            continue
+            files = [f for f in os.listdir(subdir_path)
+                     if os.path.isfile(os.path.join(subdir_path, f)) and os.path.splitext(f)[1].lower() in allowed_extensions]
+            files = sorted_numeric_filenames(files)
+            for f in files:
+                image_iterator.append(os.path.join(subdir_path, f))
+        except Exception as e:
+            print(f"警告：读取子目录失败 {subdir_path}，原因：{e}")
 
-    if not image_paths:
+    if not image_iterator:
         print("错误：未找到任何图片文件")
         return
 
-    # 处理图片并生成PDF
     try:
-        images = []
-        for path in image_paths:
-            try:
-                img = Image.open(path)
-                if img.mode != 'RGB':
-                    img = img.convert('RGB')
-                images.append(img)
-            except Exception as e:
-                print(f"警告：无法处理文件 '{path}'，已跳过。错误信息：{str(e)}")
-                continue
+        def open_image(path):
+            img = Image.open(path)
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            return img
 
-        if not images:
+        # 用生成器延迟加载，首张图用作 PDF 的 base 图
+        image_iter = (open_image(p) for p in image_iterator)
+        first_image = next(image_iter, None)
+
+        if not first_image:
             print("错误：没有有效图片可生成PDF")
             return
 
-        # 确保输出文件名正确
-        pdf_name = f"{os.path.splitext(pdf_name)[0]}.pdf"
-        output_path = os.path.normpath(output_path)
-        os.makedirs(output_path, exist_ok=True)
-        pdf_full_path = os.path.join(output_path, pdf_name)
-
-        # 保存PDF
-        images[0].save(
+        print(f"开始生成PDF：{pdf_full_path}")
+        first_image.save(
             pdf_full_path,
-            "PDF", 
-            save_all=True, 
-            append_images=images[1:],
+            "PDF",
+            save_all=True,
+            append_images=[img for img in image_iter],
             optimize=True
         )
-        print(f"成功生成PDF：'{pdf_full_path}'")
+        print(f"✅ 成功生成PDF：{pdf_full_path}")
 
     except Exception as e:
-        print(f"生成PDF时发生错误：{str(e)}")
-    finally:
-        # 关闭所有图片对象
-        for img in images:
-            img.close()
+        print(f"❌ 生成PDF失败：{e}")
 
     print(f"处理完成，耗时 {time.time() - start_time:.2f} 秒")
 
 def main():
-    # 加载配置
     config_path = "D:/18comic_down/code/config.yml"
     try:
         option = jmcomic.JmOption.from_file(config_path)
@@ -105,29 +83,27 @@ def main():
             config = yaml.safe_load(f)
             base_dir = config["dir_rule"]["base_dir"]
     except Exception as e:
-        print(f"加载配置失败：{str(e)}")
+        print(f"加载配置失败：{e}")
         return
 
-    # 遍历根目录处理未转换的文件夹
-    try:
-        with os.scandir(base_dir) as entries:
-            for entry in entries:
-                if entry.is_dir():
-                    pdf_name = f"{entry.name}.pdf"
-                    pdf_path = os.path.join(base_dir, pdf_name)
-                    
-                    if os.path.exists(pdf_path):
-                        print(f"PDF已存在，跳过：'{pdf_name}'")
-                        continue
-                    
-                    print(f"\n开始转换：'{entry.name}'")
-                    convert_images_to_pdf(
-                        input_folder=entry.path,
-                        output_path=base_dir,
-                        pdf_name=entry.name
-                    )
-    except FileNotFoundError:
-        print(f"根目录不存在：'{base_dir}'")
+    if not os.path.exists(base_dir):
+        print(f"错误：根目录不存在 {base_dir}")
+        return
+
+    for entry in os.scandir(base_dir):
+        if entry.is_dir():
+            pdf_name = f"{entry.name}.pdf"
+            pdf_path = os.path.join(base_dir, pdf_name)
+            if os.path.exists(pdf_path):
+                print(f"跳过已有PDF：{pdf_name}")
+                continue
+
+            print(f"\n📄 转换中：{entry.name}")
+            convert_images_to_pdf(
+                input_folder=entry.path,
+                output_path=base_dir,
+                pdf_name=entry.name
+            )
 
 if __name__ == "__main__":
     main()
